@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import html2canvas from 'html2canvas';
 import StatusBar from './components/StatusBar';
 import NoteCard from './components/NoteCard';
 import NoteEditor from './components/NoteEditor';
@@ -39,6 +40,7 @@ export default function App() {
   const [summarizingId, setSummarizingId] = useState<string | null>(null);
   const [report, setReport] = useState<ReportAnalysis | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
+  const [snapshotBusy, setSnapshotBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
   const [onDevice, setOnDevice] = useState<OnDeviceAvailability>('unsupported');
@@ -52,6 +54,37 @@ export default function App() {
   const refreshOnDevice = useCallback(async () => {
     setOnDevice(await checkOnDeviceAvailability());
   }, []);
+
+  // Export a PNG snapshot of the whole page (used for the demo video:
+  // the cloud browser cannot hand screenshots back as files, so the app
+  // renders its own snapshot for download).
+  const downloadSnapshot = useCallback(async () => {
+    const el = document.querySelector('.app') as HTMLElement | null;
+    if (!el || snapshotBusy) return;
+    setSnapshotBusy(true);
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        backgroundColor: '#f7f3ea',
+      });
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png'),
+      );
+      if (!blob) throw new Error('Snapshot failed');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'fieldnotes-snapshot.png';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(
+        'Snapshot failed: ' + (e instanceof Error ? e.message : String(e)),
+      );
+    } finally {
+      setSnapshotBusy(false);
+    }
+  }, [snapshotBusy]);
 
   // Boot: Firebase, Firestore pull, on-device probe, connectivity listeners.
   useEffect(() => {
@@ -414,6 +447,14 @@ export default function App() {
             Firebase AI Logic hybrid docs
           </a>
         </p>
+        <button
+          type="button"
+          className="snapshot-btn"
+          onClick={downloadSnapshot}
+          disabled={snapshotBusy}
+        >
+          {snapshotBusy ? 'Capturing…' : 'Download snapshot (PNG)'}
+        </button>
       </footer>
     </div>
   );
