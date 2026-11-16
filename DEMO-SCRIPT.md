@@ -31,7 +31,7 @@
 ### Shot 4 — Cloud fallback (1:30–2:00, ~30s)
 **Visual:** Back online. Open a second note (classroom observation), click **Summarise**. If Nano is available this will also be on-device — so instead, narrate over the status bar: click **Re-check AI engine**, then explain while showing the code in the editor (`src/lib/ai.ts`, the `PREFER_ON_DEVICE` block) for 5 seconds.
 **Narration:**
-> "The same code path falls back to the cloud — Gemini 2.5 Flash Lite — on any device without Nano. One model call, `PREFER_ON_DEVICE` mode; the SDK decides where it runs, and every summary shows you which one it was."
+> "The same code path falls back to the cloud — gemini-3.5-flash-lite — on any device without Nano. One model call, `PREFER_ON_DEVICE` mode; the SDK decides where it runs, and every summary shows you which one it was."
 
 ### Shot 5 — Deep analysis in the cloud (2:00–2:30, ~30s)
 **Visual:** Scroll to **Field report — deep analysis**, click **Run deep analysis (cloud)**. Show themes, action items and connections appearing, with the **☁️ Cloud · Gemini** badge.
