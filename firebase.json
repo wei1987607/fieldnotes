@@ -1,0 +1,1 @@
+{"firestore":{"indexes":"firestore.indexes.json","rules":"firestore.rules"},"hosting":{"headers":[{"headers":[{"key":"Cache-Control","value":"max-age=31536000"}],"source":"**/*.@(js|css)"}],"ignore":["firebase.json","**/.*","**/node_modules/**"],"public":"dist","rewrites":[{"destination":"/index.html","source":"**"}]}}

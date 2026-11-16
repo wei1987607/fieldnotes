@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// FieldNotes — Firestore rules.
+// Notes live under users/{uid}/notes/{noteId}. Each anonymous user can only
+// read and write their own notes.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/notes/{noteId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Nothing else is readable or writable from clients.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
