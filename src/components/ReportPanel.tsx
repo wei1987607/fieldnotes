@@ -37,7 +37,7 @@ export default function ReportPanel({
       </div>
       <p className="report-sub">
         Long documents and cross-note reasoning go to the cloud model (
-        {`gemini-2.5-flash`}) — the on-device model is for fast, private,
+        {`gemini-3.5-flash-lite`}) — the on-device model is for fast, private,
         single-note summaries. {!cloudEnabled && (
           <strong> Cloud analysis is currently disabled by Remote Config.</strong>
         )}

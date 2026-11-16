@@ -383,7 +383,7 @@ export default function App() {
                 <li>
                   <strong>Deep analysis is cloud-only.</strong> Cross-note
                   themes and action items go to{' '}
-                  <code>gemini-2.5-flash</code> (below), gated by Remote
+                  <code>gemini-3.5-flash-lite</code> (below), gated by Remote
                   Config.
                 </li>
               </ol>

@@ -15,8 +15,15 @@
  *    visible to judges.
  *
  * 2. `analyzeFieldReport()` — CLOUD-ONLY inference. Long documents and
- *    cross-note analysis go to `gemini-2.5-flash` in the cloud, where the
- *    bigger model can do themes, action items and cross-note connections.
+ *    cross-note analysis go to `gemini-3.5-flash-lite` in the cloud, where
+ *    the bigger model can do themes, action items and cross-note connections.
+ *    (2026-11-16: `gemini-2.5-flash` was retired by Google — the API
+ *    returned 404 "no longer available to new users" and recommended
+ *    `gemini-3.8-flash`; `gemini-3.8-flash` then proved unusable — every
+ *    call took ~180s and either barely finished with empty fields or
+ *    failed with 503 "Deadline expired". `gemini-3.5-flash-lite` is the
+ *    same model that answers single-note summaries in ~2.3s, so deep
+ *    analysis uses it too; see CLOUD_ANALYSIS_MODEL.)
  *
  * DEMO MODE (no Firebase config): both functions use a deterministic,
  * extractive mock summarizer. Every mock result is labelled
@@ -48,47 +55,73 @@ import type {
 
 /** Cloud model used as the hybrid fallback (Firebase JS SDK v13 default). */
 export const HYBRID_CLOUD_MODEL = 'gemini-3.5-flash-lite';
-/** Cloud model used for deep, cross-note analysis. */
-export const CLOUD_ANALYSIS_MODEL = 'gemini-2.5-flash';
+/** Cloud model used for deep, cross-note analysis. (2026-11-16: gemini-2.5-flash retired by Google, 404; gemini-3.8-flash then proved unusable — every call took ~180s and either barely finished with empty fields or failed with 503 "Deadline expired". gemini-3.5-flash-lite answers in ~2.3s, so deep analysis uses it too.) */
+export const CLOUD_ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 
 const summarySchema = new ObjectSchema(
+  // NOTE: ObjectSchema's 3rd constructor arg is `optionalProperties`, NOT
+  // `required` — passing the field list there marked every field optional,
+  // so the backend enforced nothing. Omit it: with no optionalProperties,
+  // toJSON() marks every property required. Array counts are enforced with
+  // minItems/maxItems (2026-11-16 fix — deep analysis kept returning empty
+  // actionItems/connections because all three fields were optional).
   { description: 'Structured summary of a single field note.' },
   {
     summary: new StringSchema({
       description: 'One to three sentence summary of the note.',
     }),
     tags: new ArraySchema(
-      { description: 'Three to six short lowercase topic tags.' },
+      {
+        description: 'Three to six short lowercase topic tags.',
+        minItems: 3,
+        maxItems: 6,
+      },
       new StringSchema(),
     ),
     keyPoints: new ArraySchema(
-      { description: 'Two to five key points from the note.' },
+      {
+        description: 'Two to five key points from the note.',
+        minItems: 2,
+        maxItems: 5,
+      },
       new StringSchema(),
     ),
   },
-  ['summary', 'tags', 'keyPoints'],
 );
 
 const reportSchema = new ObjectSchema(
+  // See summarySchema note: no 3rd arg — every property is required, and
+  // counts are enforced with minItems/maxItems (the old code passed the
+  // field list as `optionalProperties`, so nothing was required and the
+  // model returned empty actionItems/connections every time).
   { description: 'Deep analysis across several field notes.' },
   {
     themes: new ArraySchema(
-      { description: 'Three to five recurring themes across the notes.' },
+      {
+        description: 'Exactly four recurring themes across the notes.',
+        minItems: 4,
+        maxItems: 4,
+      },
       new StringSchema(),
     ),
     actionItems: new ArraySchema(
-      { description: 'Three to six concrete next steps for the researcher.' },
+      {
+        description: 'Exactly four concrete next steps for the researcher.',
+        minItems: 4,
+        maxItems: 4,
+      },
       new StringSchema(),
     ),
     connections: new ArraySchema(
       {
         description:
-          'Two to five connections between notes, each naming the notes involved.',
+          'Exactly three connections between notes, each naming the notes involved.',
+        minItems: 3,
+        maxItems: 3,
       },
       new StringSchema(),
     ),
   },
-  ['themes', 'actionItems', 'connections'],
 );
 
 let hybridModel: GenerativeModel | null = null;
@@ -195,9 +228,13 @@ export async function summarizeNote(
     return mockSummarize(note, summaryLength, startedAt);
   }
 
-  // User-gesture context: warm up the on-device model first (no-op if the
-  // model is already downloaded; falls back silently if unavailable).
-  await ensureDeviceModelReady();
+  // User-gesture context: warm up the on-device model in the background.
+  // Do NOT await it: downloading Gemini Nano can take minutes on first use,
+  // and generateContent() with PREFER_ON_DEVICE already falls back to the
+  // cloud while the on-device model isn't ready. Awaiting the download here
+  // hung Summarise for 7+ minutes on a machine where Nano was only
+  // "downloadable" (verified 2026-11-16 on the user's computer Chrome).
+  void ensureDeviceModelReady();
 
   const prompt = [
     'You are a field-research assistant. Summarise the following field note.',
@@ -282,6 +319,8 @@ export async function analyzeFieldReport(
   const prompt = [
     'You are a field-research analyst. Analyse these field notes together.',
     'Find recurring themes, concrete action items for the researcher, and connections between notes (name the notes involved).',
+    'Return EXACTLY 4 themes, EXACTLY 4 action items and EXACTLY 3 connections — no more, no fewer.',
+    'Each item must be one short sentence (under 15 words) grounded in the notes. Do not add filler, placeholder or generic items, and do not repeat the same idea in different words.',
     'Reply with ONLY a JSON object of this exact shape, no other text:',
     '{"themes": ["...", "..."], "actionItems": ["...", "..."], "connections": ["...", "..."]}',
     '',

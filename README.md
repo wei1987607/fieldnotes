@@ -12,7 +12,7 @@ Field researchers, journalists and teachers often work where the internet is unr
 | **Instant on-device summaries** | Each note is summarised by **Gemini Nano on-device** via Firebase AI Logic hybrid inference — private, free, no connection needed. |
 | **Cloud fallback** | If no on-device model is available, the same call falls back to `gemini-3.5-flash-lite` in the cloud. |
 | **Proof of where inference ran** | Every summary shows a badge — 🟢 **On-device · Gemini Nano**, ☁️ **Cloud · Gemini**, or 🧪 **Demo mock** — plus latency and model name. |
-| **Deep field reports** | Cross-note themes, action items and connections, analysed in the cloud by `gemini-2.5-flash` (long context needs the bigger model). |
+| **Deep field reports** | Cross-note themes, action items and connections, analysed in the cloud by `gemini-3.5-flash-lite` (cross-note reasoning needs the cloud model). |
 | **Firestore sync** | Notes sync to `users/{uid}/notes/{noteId}` when back online; unsynced notes are re-pushed automatically. |
 | **Anonymous Auth** | One anonymous uid per device — no sign-up, no personal data. |
 | **Remote Config** | Summary length (`short` / `standard` / `detailed`), cloud-analysis on/off, and hybrid mode are all remotely tunable without redeploying. |
@@ -53,7 +53,7 @@ const source = result.response.inferenceSource; // 'on_device' | 'in_cloud'
 
 The returned `inferenceSource` is stored on the note and rendered as a badge, so the hybrid behaviour is visible — not just claimed.
 
-**2. Cloud-only inference for deep analysis** — `analyzeFieldReport()` uses a plain cloud model (`gemini-2.5-flash`) with a JSON response schema for themes, action items and cross-note connections. On-device inference only supports single-turn text generation, so long, multi-document reasoning belongs in the cloud.
+**2. Cloud-only inference for deep analysis** — `analyzeFieldReport()` uses a plain cloud model (`gemini-3.5-flash-lite`) with a JSON response schema for themes, action items and cross-note connections. On-device inference only supports single-turn text generation, so long, multi-document reasoning belongs in the cloud.
 
 **3. Other Firebase products** (see [`src/lib/firebase.ts`](src/lib/firebase.ts)):
 
