@@ -318,10 +318,14 @@ const STOPWORDS = new Set(
 );
 
 function sentences(text: string): string[] {
-  return text
-    .replace(/\s+/g, ' ')
+  // Protect common abbreviations so "Mrs. Chen" is not split into "Mrs."
+  let t = text.replace(/\s+/g, ' ');
+  for (const abbr of ['Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'St', 'Sr', 'Jr', 'vs', 'e.g', 'i.e']) {
+    t = t.split(`${abbr}. `).join(`${abbr}@@@ `);
+  }
+  return t
     .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
+    .map((s) => s.trim().replace(/@@@/g, '.'))
     .filter((s) => s.length > 3);
 }
 
